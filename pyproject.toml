@@ -4,15 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dropitx"
-version = "1.0.0"
-description = "DropItX CLI — Developer-friendly file sharing from the command line"
+version = "1.1.0"
+description = "DropItX CLI — Developer-friendly file sharing from the command line, with MCP server for AI agents"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.8"
 authors = [
     {name = "DropItX", email = "support@dropitx.com"},
 ]
-keywords = ["file-sharing", "cli", "upload", "transfer"]
+keywords = ["file-sharing", "cli", "upload", "transfer", "mcp", "agents"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Console",
@@ -34,6 +34,9 @@ dependencies = [
 
 [project.optional-dependencies]
 qr = ["qrcode[pil]>=7.0"]
+mcp = ["mcp>=1.0; python_version>='3.10'"]
+dev = ["pytest>=7.0", "pytest-cov>=4.0"]
+
 [project.urls]
 Homepage = "https://dropitx.com"
 Documentation = "https://dropitx.com/docs"

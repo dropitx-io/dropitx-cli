@@ -18,7 +18,7 @@ from dropitx import config, qr, uploader
 # ----------------------------------------------------------------- version / imports
 
 def test_version_is_string():
-    assert dropitx.__version__ == "1.0.0"
+    assert dropitx.__version__ == "1.1.0"
 
 
 def test_all_modules_importable():

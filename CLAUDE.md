@@ -4,18 +4,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-DropItX CLI — a Python command-line client for the DropItX file-sharing service (`dropitx` on PyPI). Built with **Click** (CLI), **httpx** (HTTP), **rich** (terminal output), and an optional **qrcode[pil]** extra.
+DropItX CLI — a Python command-line client for the DropItX file-sharing service (`dropitx` on PyPI). Dual-mode: direct uploads via Click CLI, and agent-driven page management via MCP stdio server. Built with **Click** (CLI), **httpx** (HTTP), **rich** (terminal output), optional **qrcode[pil]** extra, and optional **mcp** server (FastMCP).
 
 ## Commands
 
 ```bash
-pip install -e '.[dev]'          # dev install (adds pytest, pytest-cov)
+pip install -e .                 # minimal install (Click, httpx, rich)
 pip install -e '.[qr]'           # add QR image support (qrcode[pil])
-pytest                           # run all tests (network-free)
-pytest tests/test_dropitx.py     # CLI, config, QR, UploadResult mapping
+pip install -e '.[mcp]'          # add MCP server support (mcp, requires Python 3.10+)
+pip install -e '.[all]'          # all extras (qr + mcp)
+pytest                           # run all tests (network-free except slow wheel test)
+pytest -m 'not slow'             # skip slow wheel test
 python -m dropitx.cli            # run without installing the entry point
 dropitx --help                   # installed entry point → dropitx.cli:cli
-There is no lint/typecheck step configured; `pip install -e .` is the build and `pytest` is the test gate (run on push/PR via `.github/workflows/ci.yml`, Python 3.9 + 3.12 matrix). Python **3.9+** is the practical minimum even though `pyproject.toml` declares `>=3.8` — the source uses PEP 585 generics (`tuple[str, ...]`, `list[UploadResult]`) evaluated at runtime.
+```
+
+There is no lint/typecheck step configured; `pip install -e .` is the build and `pytest` is the test gate (run on push/PR via `.github/workflows/ci.yml`, Python 3.9 + 3.12 matrix). Python **3.9+** is the practical minimum even though `pyproject.toml` declares `>=3.8` — the source uses PEP 585 generics (`tuple[str, ...]`, `list[UploadResult]`) evaluated at runtime. MCP server requires Python **3.10+** (FastMCP SDK requirement).
 
 ## Architecture
 
@@ -49,6 +53,27 @@ Precedence for both API key and URL: **environment variable** (`DROPITX_API_KEY`
 ### Output layer
 All terminal rendering goes through one shared `console = Console()` and `print_upload_result()`. New upload paths should route results through `print_upload_result` to keep the success panel/QR behavior consistent.
 
+
+### V1 API Client (`v1_client.py`)
+Wraps FastAPI `/api/v1/documents` endpoints. Single responsibility: HTTP CRUD for documents and revisions.
+- **Classes:** `DocumentResult` (response wrapper), `V1ClientError` (exception with status + message)
+- **CRUD:** create/get/list/update/delete document (map directly to HTTP endpoints)
+- **Revisions:** list/get/restore revision (version history management)
+- **Auth:** Bearer token from `config.get_api_key()`, precedence env > file > None
+- **Timeout:** 60s (generous for Render free-tier cold starts)
+- **Content limit:** 5M chars (matches server-side `DocumentCreate.max_length`)
+- **Key pattern:** All functions raise `V1ClientError` on failure; caller decides whether to surface or return error dict (as MCP server does)
+
+### MCP Stdio Server (`mcp_server.py`)
+Wraps v1_client functions and exposes them as MCP tools for agents. Wired to the CLI via the `dropitx mcp` command in `cli.py` (lazy-imports `mcp_server` so the base install stays free of the `mcp` dependency; prints an install hint and exits 1 if the `mcp` extra isn't installed).
+- **Framework:** FastMCP (mcp.server.fastmcp)
+- **Entry:** `run_server()` starts stdio transport
+- **Tools:** 8 published via `@mcp.tool()` decorator:
+  - publish_page, update_page, get_page, list_pages, delete_page
+  - list_revisions, get_revision, restore_revision
+- **Error handling:** Catches `V1ClientError`, returns `{error: message}` dict (never raises) — keeps agent context clean
+- **Content safety:** list_pages/list_revisions truncate content to 200 chars for context-window safety
+- **Response dicts:** Compact for publish/update (no content), full for get_page, preview for list
 
 ### drop-plan Claude Code skill (`skills/drop-plan/`)
 The skill itself — `SKILL.md` plus `scripts/find_latest_plan.py` (a deterministic, stdlib-only newest-plan-artifact finder: `plans/*/plan.md` > its own `phase-*.md` siblings, `.html` > a sibling `.md` twin) — is bundled as package data (`[tool.setuptools.package-data]` in `pyproject.toml`, since `packages.find` alone only ships `.py` files) and installed on demand via `dropitx skill install` in `cli.py`. The install command copies `importlib.resources.files("dropitx") / "skills" / "drop-plan"` to `~/.claude/skills/drop-plan/`, guards against Python <3.9 (needs `importlib.resources.files`), refuses to overwrite an existing install without `--force`, and even then prompts for confirmation before `shutil.rmtree`-ing the destination. `shutil.copytree` explicitly ignores `__pycache__`/`*.pyc` so installer bytecode-compilation artifacts don't leak into the shared skill folder.

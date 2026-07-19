@@ -8,6 +8,9 @@ from typing import Optional
 # Default API base URL
 DEFAULT_API_URL = "https://overcome-sterling-senator-clinics.trycloudflare.com"
 
+# Default frontend base URL (for share links: {frontend_url}/s/{slug})
+DEFAULT_FRONTEND_URL = "https://dropitx.com"
+
 # Config file location
 CONFIG_DIR = Path.home() / ".dropitx"
 CONFIG_FILE = CONFIG_DIR / "config.json"
@@ -71,4 +74,17 @@ def get_api_url() -> str:
     # Check config file
     config = load_config()
     url = config.get("api_url", DEFAULT_API_URL)
+    return url.rstrip("/")
+
+
+def get_frontend_url() -> str:
+    """Get frontend base URL from config or environment (used for share links)."""
+    # Check environment variable first
+    env_url = os.environ.get("DROPITX_FRONTEND_URL")
+    if env_url:
+        return env_url.rstrip("/")
+
+    # Check config file
+    config = load_config()
+    url = config.get("frontend_url", DEFAULT_FRONTEND_URL)
     return url.rstrip("/")

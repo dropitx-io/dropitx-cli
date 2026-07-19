@@ -331,6 +331,30 @@ def qr(url: str, output: Optional[str]) -> None:
         console.print(generate_qr_ascii(url))
 
 
+@cli.command()
+def mcp() -> None:
+    """Start the MCP stdio server for AI agents (requires Python 3.10+).
+
+    Exposes 5 tools: publish_page, update_page, get_page, list_pages, delete_page.
+
+    Install the extra first: pip install 'dropitx[mcp]'
+
+    Then configure in Claude Code:
+        claude mcp add dropitx --env DROPITX_API_KEY=shk_... -- uvx --from 'dropitx[mcp]' dropitx mcp
+    """
+    try:
+        from .mcp_server import run_server
+    except ImportError:
+        click.echo(
+            "MCP server requires the 'dropitx[mcp]' extra (Python 3.10+).\n"
+            "Install it with: pip install 'dropitx[mcp]'",
+            err=True,
+        )
+        sys.exit(1)
+
+    run_server()
+
+
 @cli.group(name="skill")
 def skill_group() -> None:
     """Manage the drop-plan Claude Code skill."""
