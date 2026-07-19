@@ -34,8 +34,6 @@ dependencies = [
 
 [project.optional-dependencies]
 qr = ["qrcode[pil]>=7.0"]
-dev = ["pytest>=7.0", "pytest-cov>=4.0"]
-
 [project.urls]
 Homepage = "https://dropitx.com"
 Documentation = "https://dropitx.com/docs"
@@ -47,3 +45,9 @@ dropitx = "dropitx.cli:cli"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["dropitx*"]
+
+[tool.setuptools.package-data]
+dropitx = ["skills/**/*"]
+
+[tool.pytest.ini_options]
+markers = ["slow: builds a real wheel + venv, slower than the rest of the suite"]

@@ -4,22 +4,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-DropItX CLI — a Python command-line client for the DropItX file-sharing service (`dropitx` on PyPI). Built with **Click** (CLI), **httpx** (HTTP), **rich** (terminal output), and an optional **qrcode[pil]** extra. Single package, no subpackages.
+DropItX CLI — a Python command-line client for the DropItX file-sharing service (`dropitx` on PyPI). Built with **Click** (CLI), **httpx** (HTTP), **rich** (terminal output), and an optional **qrcode[pil]** extra.
 
 ## Commands
 
 ```bash
 pip install -e '.[dev]'          # dev install (adds pytest, pytest-cov)
 pip install -e '.[qr]'           # add QR image support (qrcode[pil])
-
-pytest                           # run tests (none currently exist in repo)
-pytest path/to/test_file.py::test_name   # single test (once tests exist)
-
+pytest                           # run all tests (network-free)
+pytest tests/test_dropitx.py     # CLI, config, QR, UploadResult mapping
 python -m dropitx.cli            # run without installing the entry point
 dropitx --help                   # installed entry point → dropitx.cli:cli
-```
-
-There is no lint/typecheck/build step configured beyond `setuptools`; `pip install -e .` is the build. Python **3.9+** is the practical minimum even though `pyproject.toml` declares `>=3.8` — the source uses PEP 585 generics (`tuple[str, ...]`, `list[UploadResult]`) evaluated at runtime.
+There is no lint/typecheck step configured; `pip install -e .` is the build and `pytest` is the test gate (run on push/PR via `.github/workflows/ci.yml`, Python 3.9 + 3.12 matrix). Python **3.9+** is the practical minimum even though `pyproject.toml` declares `>=3.8` — the source uses PEP 585 generics (`tuple[str, ...]`, `list[UploadResult]`) evaluated at runtime.
 
 ## Architecture
 
@@ -52,3 +48,7 @@ Precedence for both API key and URL: **environment variable** (`DROPITX_API_KEY`
 
 ### Output layer
 All terminal rendering goes through one shared `console = Console()` and `print_upload_result()`. New upload paths should route results through `print_upload_result` to keep the success panel/QR behavior consistent.
+
+
+### drop-plan Claude Code skill (`skills/drop-plan/`)
+The skill itself — `SKILL.md` plus `scripts/find_latest_plan.py` (a deterministic, stdlib-only newest-plan-artifact finder: `plans/*/plan.md` > its own `phase-*.md` siblings, `.html` > a sibling `.md` twin) — is bundled as package data (`[tool.setuptools.package-data]` in `pyproject.toml`, since `packages.find` alone only ships `.py` files) and installed on demand via `dropitx skill install` in `cli.py`. The install command copies `importlib.resources.files("dropitx") / "skills" / "drop-plan"` to `~/.claude/skills/drop-plan/`, guards against Python <3.9 (needs `importlib.resources.files`), refuses to overwrite an existing install without `--force`, and even then prompts for confirmation before `shutil.rmtree`-ing the destination. `shutil.copytree` explicitly ignores `__pycache__`/`*.pyc` so installer bytecode-compilation artifacts don't leak into the shared skill folder.

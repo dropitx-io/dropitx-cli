@@ -1,5 +1,6 @@
 """DropItX CLI — Main command-line interface."""
 
+import shutil
 import sys
 from pathlib import Path
 from typing import Optional
@@ -328,6 +329,61 @@ def qr(url: str, output: Optional[str]) -> None:
             sys.exit(1)
     else:
         console.print(generate_qr_ascii(url))
+
+
+@cli.group(name="skill")
+def skill_group() -> None:
+    """Manage the drop-plan Claude Code skill."""
+
+
+@skill_group.command(name="install")
+@click.option("--force", is_flag=True, help="Overwrite an existing installed copy")
+def skill_install(force: bool) -> None:
+    """Install the drop-plan Claude Code skill to ~/.claude/skills/drop-plan.
+
+    Lets Claude Code share plan/report docs as dropitx links. Re-run with
+    --force to pick up an upgraded copy after updating dropitx-cli.
+    """
+    if sys.version_info < (3, 9):
+        console.print(
+            "[red]Error: drop-plan requires Python 3.9+ (importlib.resources.files)[/red]"
+        )
+        sys.exit(1)
+
+    import importlib.resources
+
+    src = importlib.resources.files("dropitx") / "skills" / "drop-plan"
+    if not src.is_dir():
+        console.print("[red]Error: bundled skill content not found in this install[/red]")
+        sys.exit(1)
+
+    dest = Path.home() / ".claude" / "skills" / "drop-plan"
+
+    if dest.exists():
+        if not force:
+            console.print(f"[yellow]Already installed at {dest}[/yellow]")
+            console.print("Use --force to overwrite with the bundled copy.")
+            return
+
+        # Safety guard: never rmtree anything but the exact skill destination.
+        # An `if`/`raise` (not `assert`) so this can't be stripped by -O/PYTHONOPTIMIZE.
+        if dest.parts[-2:] != ("skills", "drop-plan"):
+            raise RuntimeError(f"refusing to delete unexpected path: {dest}")
+        if not click.confirm(f"Overwrite {dest}?"):
+            console.print("[dim]Aborted, no changes made[/dim]")
+            return
+        shutil.rmtree(dest)
+
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    with importlib.resources.as_file(src) as src_path:
+        shutil.copytree(
+            src_path,
+            dest,
+            ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
+        )
+
+    console.print(f"[green]Installed drop-plan skill to: {dest}[/green]")
+    console.print('[dim]Try: /drop-plan, or just say "share this plan"[/dim]')
 
 
 def main() -> None:

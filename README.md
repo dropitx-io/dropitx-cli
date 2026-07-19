@@ -16,7 +16,20 @@ For QR code image support:
 pip install 'dropitx[qr]'
 ```
 
+
 ## Quick Start
+
+### Enable the Claude Code skill
+
+```bash
+dropitx skill install
+```
+
+Installs `drop-plan` to `~/.claude/skills/drop-plan/` — a Claude Code skill
+that shares a plan, phase file, or brainstorm/report doc (markdown or HTML)
+as a dropitx link. Once installed, say things like "share this plan with the
+team" in Claude Code, or invoke it directly with `/drop-plan`. Re-run with
+`--force` after upgrading `dropitx-cli` to pick up the latest copy.
 
 ### Set up your API key
 
@@ -134,6 +147,18 @@ Usage: dropitx qr [OPTIONS] URL
 Options:
   -o, --output PATH  Output file for QR code image
   --help             Show this message and exit
+```
+
+### `dropitx skill install`
+
+Install the `drop-plan` Claude Code skill.
+
+```
+Usage: dropitx skill install [OPTIONS]
+
+Options:
+  --force  Overwrite an existing installed copy
+  --help   Show this message and exit
 ```
 
 ## Expiration Formats
