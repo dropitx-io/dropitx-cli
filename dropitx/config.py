@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Optional
 
 # Default API base URL
-DEFAULT_API_URL = "https://dropitx-api.onrender.com"
+DEFAULT_API_URL = "https://overcome-sterling-senator-clinics.trycloudflare.com"
 
 # Config file location
 CONFIG_DIR = Path.home() / ".dropitx"
