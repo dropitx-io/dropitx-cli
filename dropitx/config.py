@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Optional
 
 # Default API base URL
-DEFAULT_API_URL = "https://overcome-sterling-senator-clinics.trycloudflare.com"
+DEFAULT_API_URL = "http://localhost:8000"
 
 # Default frontend base URL (for share links: {frontend_url}/s/{slug})
 DEFAULT_FRONTEND_URL = "https://dropitx.com"
