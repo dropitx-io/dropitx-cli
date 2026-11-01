@@ -279,10 +279,10 @@ export TWINE_PASSWORD=pypi-xxxx...
 ### For Users (Runtime)
 ```bash
 # API key (optional)
-export DROPITX_API_KEY=sk_xxxxxxxxxxxxx
+export DROPITX_API_KEY=shk_xxxxxxxxxxxxx
 
 # Custom API URL
-export DROPITX_API_URL=https://api.dropitx.com
+export DROPITX_API_URL=https://api.dropitx.site
 ```
 
 ## Common Issues

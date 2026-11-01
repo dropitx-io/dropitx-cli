@@ -18,7 +18,7 @@ from dropitx import config, qr, uploader
 # ----------------------------------------------------------------- version / imports
 
 def test_version_is_string():
-    assert dropitx.__version__ == "1.1.0"
+    assert dropitx.__version__ == "1.2.0"
 
 
 def test_all_modules_importable():
@@ -99,6 +99,23 @@ def test_default_api_url(monkeypatch, tmp_path):
     assert config.get_api_url() == config.DEFAULT_API_URL
 
 
+def test_default_api_url_is_production():
+    assert config.DEFAULT_API_URL == "https://api.dropitx.site"
+
+
+def test_default_frontend_url_is_production(monkeypatch, tmp_path):
+    monkeypatch.delenv("DROPITX_FRONTEND_URL", raising=False)
+    _isolate_config(monkeypatch, tmp_path)
+    assert config.get_frontend_url() == "https://dropitx.site"
+
+
+def test_config_file_url_overrides_default(monkeypatch, tmp_path):
+    monkeypatch.delenv("DROPITX_API_URL", raising=False)
+    _isolate_config(monkeypatch, tmp_path)
+    config.save_config({"api_url": "http://localhost:8000/"})
+    assert config.get_api_url() == "http://localhost:8000"
+
+
 def test_api_url_env_overrides(monkeypatch):
     monkeypatch.setenv("DROPITX_API_URL", "https://example.com/")
     assert config.get_api_url() == "https://example.com"   # trailing slash stripped
@@ -134,3 +151,45 @@ def test_qr_image_saved_to_file(tmp_path):
     dest = tmp_path / "qr.png"
     assert qr.generate_qr_image("https://example.com/x", str(dest)) is True
     assert dest.exists() and dest.stat().st_size > 0
+
+
+# ----------------------------------------------------------------- mcp command import failures
+
+def _run_mcp_cmd(monkeypatch, installed_version):
+    import sys
+
+    monkeypatch.setitem(sys.modules, "dropitx.mcp_server", None)  # force ImportError
+    monkeypatch.setattr(cli_mod, "_installed_mcp_version", lambda: installed_version)
+    return CliRunner().invoke(cli_mod.cli, ["mcp"])
+
+
+def test_mcp_command_reports_missing_extra(monkeypatch):
+    result = _run_mcp_cmd(monkeypatch, None)
+    assert result.exit_code == 1
+    assert "pip install 'dropitx[mcp]'" in result.output
+    assert "incompatible" not in result.output
+
+
+def test_mcp_command_reports_incompatible_version(monkeypatch):
+    result = _run_mcp_cmd(monkeypatch, "2.3.0")
+    assert result.exit_code == 1
+    assert "2.3.0" in result.output
+    assert "incompatible" in result.output
+    assert "mcp>=1.0,<2" in result.output
+    assert "requires the 'dropitx[mcp]' extra" not in result.output
+
+
+def test_usage_hint_uses_site_domain(monkeypatch, tmp_path):
+    monkeypatch.setattr(config, "CONFIG_DIR", tmp_path)
+    monkeypatch.setattr(config, "CONFIG_FILE", tmp_path / "config.json")
+    result = CliRunner().invoke(cli_mod.cli, ["config", "set-url"])
+    assert result.exit_code == 1
+    assert "https://api.dropitx.site" in result.output
+    assert "dropitx.com" not in result.output
+
+
+def test_pyproject_pins_mcp_below_2():
+    import re
+
+    text = (Path(__file__).parent.parent / "pyproject.toml").read_text()
+    assert re.search(r"mcp>=1\.0,<2;\s*python_version>='3\.10'", text)

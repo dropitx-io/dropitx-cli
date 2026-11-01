@@ -8,12 +8,12 @@ The `dropitx mcp` command starts a stdio MCP server that exposes 8 tools for AI 
 - Agents can create and update pages at stable URLs
 - Full version history via automatic revision tracking
 - Context-window-safe previews (content truncated in lists)
-- Graceful error handling (returns error dicts, never raises)
+- API failures surface as MCP errors (`isError: true`) carrying the API's message
 
 ## Requirements
 
 - Python **3.10+** (the MCP SDK requires it)
-- Install the extra: `pip install 'dropitx[mcp]'`
+- Install the extra: `pip install 'dropitx[mcp]'` (pins `mcp>=1.0,<2`; mcp 2.x is not supported yet)
 
 ## Setup
 
@@ -113,7 +113,7 @@ If you installed via `pip install 'dropitx[mcp]'`:
 **`delete_page`** - Permanently delete a page
 - **Parameters:**
   - `slug` (required): Page slug to delete
-- **Returns:** `{deleted: true, slug}` or `{error: ...}`
+- **Returns:** `{deleted: true, slug}` (API failures are raised as MCP errors)
 - **Use case:** Remove a page and all its revisions
 
 **`list_revisions`** - List version history for a page
@@ -135,7 +135,7 @@ If you installed via `pip install 'dropitx[mcp]'`:
 - **Parameters:**
   - `slug` (required): Page slug
   - `revision` (required, int): Revision number to restore to
-- **Returns:** `{success: true, new_revision: int}` or `{error: ...}`
+- **Returns:** the new revision number and a confirmation message (API failures are raised as MCP errors)
 - **Use case:** Undo recent changes to a page
 - **Safe:** Current live content is saved as a new revision before restoring, so nothing is lost
 

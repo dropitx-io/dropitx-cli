@@ -1,6 +1,6 @@
 ---
 name: drop-plan
-description: "Share a plan, phase file, or brainstorm/report doc (markdown or HTML) as a public dropitx.com link. Use whenever the user wants to share, distribute, or send a plan/report/design doc to a teammate, get a shareable link for one, or asks to 'drop' a doc -- e.g. 'share this plan with the team', 'get me a link for this report', 'can you send this doc over', 'drop this plan'. Wraps the dropitx CLI's upload command; auto-detects the newest plan/report artifact in the current repo when no path is given."
+description: "Share a plan, phase file, or brainstorm/report doc (markdown or HTML) as a public dropitx.site link. Use whenever the user wants to share, distribute, or send a plan/report/design doc to a teammate, get a shareable link for one, or asks to 'drop' a doc -- e.g. 'share this plan with the team', 'get me a link for this report', 'can you send this doc over', 'drop this plan'. Wraps the dropitx CLI's upload command; auto-detects the newest plan/report artifact in the current repo when no path is given."
 user-invocable: true
 when_to_use: "Invoke right after a plan.md, phase file, or brainstorm/plan report (md or html) has been finalized and the user wants a shareable link instead of a local file, or any time the user's phrasing matches sharing/distributing such a doc."
 argument-hint: "[file path]"
@@ -11,7 +11,7 @@ metadata:
 
 # drop-plan
 
-Turn a local plan/report doc into a shareable dropitx.com link, using the
+Turn a local plan/report doc into a shareable dropitx.site link, using the
 `dropitx` CLI (`dropitx upload`) that ships with this skill's parent package.
 
 ## Workflow

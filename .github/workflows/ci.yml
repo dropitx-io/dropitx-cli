@@ -11,7 +11,8 @@ permissions:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # ubuntu-latest (26.04) ships no Python 3.9 build for setup-python.
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:

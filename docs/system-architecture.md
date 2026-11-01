@@ -161,8 +161,8 @@ graph TD
 ### Config File Structure
 ```json
 {
-  "api_key": "sk_xxxxxxxxxxxxx",
-  "api_url": "https://dropitx-api.onrender.com"
+  "api_key": "shk_xxxxxxxxxxxxx",
+  "api_url": "https://api.dropitx.site"
 }
 ```
 **Location:** `~/.dropitx/config.json`  
@@ -191,7 +191,7 @@ Headers:
 
 Response:
 {
-  "url": "https://dropitx.com/s/abc123",
+  "url": "https://dropitx.site/s/abc123",
   "slug": "abc123",
   "filename": "file.txt",
   "size": 1024,
@@ -285,7 +285,7 @@ Table(title="DropItX Configuration")
 ├── Column "Setting" (cyan)
 └── Column "Value"
     └── API URL
-    └── API Key (masked: "sk_abc...xyz")
+    └── API Key (masked: "shk_abc...xyz")
 ```
 
 ### Error Output
@@ -307,7 +307,7 @@ sys.exit(1)
 ```python
 # API key display in config show
 masked = api_key[:8] + "..." + api_key[-4:] if len(api_key) > 12 else "***"
-# "sk_abcde...xyz"
+# "shk_abcde...xyz"
 ```
 
 ### Secure Prompts
