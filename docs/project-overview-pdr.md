@@ -7,7 +7,7 @@ DropItX CLI (`dropitx`) is a Node.js command-line client for the DropItX file-sh
 **Stack:** TypeScript on Node.js >= 20, commander (CLI), built-in fetch (HTTP), qrcode, @modelcontextprotocol/sdk + zod (MCP)  
 **Install:** `npm install -g dropitx` or `npx dropitx`  
 **License:** MIT (Copyright 2026 DropItX)  
-**Repository:** https://github.com/phuongddx/dropitx-cli (public)  
+**Repository:** https://github.com/dropitx-io/dropitx-cli (public)  
 **Homepage:** https://dropitx.site  
 **Version:** 2.0.0 (2026-11-01; replaces the never-published Python 1.x package)  
 **Tests:** vitest, network-free, CI on Node 20 and 22

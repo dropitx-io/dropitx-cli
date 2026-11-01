@@ -13,7 +13,7 @@
   "homepage": "https://dropitx.site",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/phuongddx/dropitx-cli.git"
+    "url": "git+https://github.com/dropitx-io/dropitx-cli.git"
   },
   "license": "MIT",
   "author": "DropItX <support@dropitx.com>",

@@ -1,6 +1,6 @@
 # DropItX CLI
 
-![CI](https://github.com/phuongddx/dropitx-cli/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/dropitx-io/dropitx-cli/actions/workflows/ci.yml/badge.svg)
 
 Developer-friendly file sharing from the command line, plus an MCP server that
 lets AI agents publish pages to [dropitx.site](https://dropitx.site).
@@ -247,7 +247,7 @@ API keys start with `shk_` (personal) or `sht_` (team). The CLI does not validat
 ## Development
 
 ```bash
-git clone https://github.com/phuongddx/dropitx-cli.git
+git clone https://github.com/dropitx-io/dropitx-cli.git
 cd dropitx-cli
 npm install
 npm run typecheck

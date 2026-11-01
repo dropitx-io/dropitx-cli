@@ -19,7 +19,7 @@ to PyPI.
 
 ## Repository
 
-- **Public repo:** https://github.com/phuongddx/dropitx-cli
+- **Public repo:** https://github.com/dropitx-io/dropitx-cli
 - **License:** MIT (Copyright 2026 DropItX)
 
 ## Local Development
@@ -107,3 +107,9 @@ export DROPITX_FRONTEND_URL=https://dropitx.site
   run that built it.
 - Prefer an npm granular access token scoped to the `dropitx` package with
   publish rights only.
+
+## Provenance
+
+`npm publish --provenance` only succeeds when `repository.url` in
+`package.json` points at the GitHub repository the workflow runs in
+(`dropitx-io/dropitx-cli`). Update that field if the repository moves.
