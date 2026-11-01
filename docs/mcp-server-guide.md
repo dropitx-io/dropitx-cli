@@ -12,8 +12,8 @@ The `dropitx mcp` command starts a stdio MCP server that exposes 8 tools for AI 
 
 ## Requirements
 
-- Python **3.10+** (the MCP SDK requires it)
-- Install the extra: `pip install 'dropitx[mcp]'` (pins `mcp>=1.0,<2`; mcp 2.x is not supported yet)
+- Node.js **20+**
+- Nothing else to install: `npx -y dropitx mcp` fetches and runs the package. The server is built on the official `@modelcontextprotocol/sdk` (1.x, stdio transport).
 
 ## Setup
 
@@ -32,7 +32,7 @@ API keys start with `shk_` (personal) or `sht_` (team). Generate them from the D
 #### Claude Code
 
 ```bash
-claude mcp add dropitx --env DROPITX_API_KEY=shk_... -- uvx --from 'dropitx[mcp]' dropitx mcp
+claude mcp add dropitx --env DROPITX_API_KEY=shk_... -- npx -y dropitx mcp
 ```
 
 #### Generic MCP JSON (Cursor, etc.)
@@ -41,8 +41,8 @@ claude mcp add dropitx --env DROPITX_API_KEY=shk_... -- uvx --from 'dropitx[mcp]
 {
   "mcpServers": {
     "dropitx": {
-      "command": "uvx",
-      "args": ["--from", "dropitx[mcp]", "dropitx", "mcp"],
+      "command": "npx",
+      "args": ["-y", "dropitx", "mcp"],
       "env": {
         "DROPITX_API_KEY": "shk_..."
       }
@@ -51,9 +51,9 @@ claude mcp add dropitx --env DROPITX_API_KEY=shk_... -- uvx --from 'dropitx[mcp]
 }
 ```
 
-#### Pip-installed (no uvx)
+#### Globally installed (no npx)
 
-If you installed via `pip install 'dropitx[mcp]'`:
+If you installed with `npm install -g dropitx`:
 
 ```json
 {
@@ -104,7 +104,7 @@ If you installed via `pip install 'dropitx[mcp]'`:
 **`list_pages`** - List your pages with previews
 - **Parameters:**
   - `limit` (optional, default 20, max 100): Number of pages to return
-- **Returns:** List of `{url, slug, title, content_preview (200 chars + "..."), content_size, view_count, updated_at}`
+- **Returns:** List of `{url, slug, title, filename, content_preview (200 chars + "..."), content_size, view_count, updated_at}` — one JSON text block per page, plus `structuredContent: {result: [...]}`
 - **Use case:** Browse existing pages, find what to update
 - **Context-safe:** Content truncated to 200 chars to conserve agent context window
 
@@ -150,15 +150,19 @@ If you installed via `pip install 'dropitx[mcp]'`:
 
 ### Cold start latency
 
-The DropItX API runs on Render's free tier. The first request after idle may take ~30s to wake the server. Subsequent requests are fast (<1s warm).
+The first request after the API has been idle may take a while to wake the server; requests time out after 60 seconds.
 
 ### 401: Invalid API key
 
 Ensure your key starts with `shk_` or `sht_` and hasn't been revoked. Check with `dropitx config show`.
 
-### Python <3.10
+### Node.js <20
 
-The MCP server requires Python 3.10+. On older Python, the base CLI works fine but `dropitx mcp` will print an install hint and exit.
+The package declares `engines.node >= 20`. Check with `node --version`.
+
+### Errors
+
+Every API or network failure comes back as a tool result with `isError: true` and text `Error executing tool <name>: <API message>`, for example `Error executing tool get_page: Not found: Document not found`. Invalid arguments (a missing `slug`, a non-integer `revision`) are rejected with `isError: true` before any request is made.
 
 ### Key scopes
 

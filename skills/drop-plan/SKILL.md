@@ -6,7 +6,7 @@ when_to_use: "Invoke right after a plan.md, phase file, or brainstorm/plan repor
 argument-hint: "[file path]"
 metadata:
   author: dropitx
-  version: "1.0.0"
+  version: "2.0.0"
 ---
 
 # drop-plan
@@ -20,9 +20,9 @@ Turn a local plan/report doc into a shareable dropitx.site link, using the
    ```bash
    command -v dropitx
    ```
-   If missing, install it automatically:
+   If missing, install it automatically (needs Node.js 20+):
    ```bash
-   pip install dropitx
+   npm install -g dropitx
    ```
    Re-check `command -v dropitx` after installing. If it's still missing,
    stop and report the installation failure to the user — do not proceed.
@@ -43,10 +43,10 @@ Turn a local plan/report doc into a shareable dropitx.site link, using the
      directly.
    - Otherwise, run the bundled detection script from the repo root:
      ```bash
-     python3 <path-to-this-skill>/scripts/find_latest_plan.py
+     node <path-to-this-skill>/scripts/find_latest_plan.mjs
      ```
      This finds the newest plan/report artifact under `plans/*/plan.md`,
-     `plans/*/phase-*.md`, `plans/reports/*.md`/`.html`, or `docs/plans/*.md`,
+     `plans/*/phase-*.md`, `plans/reports/*.md`/`.html`, or `docs/plans/*.md`/`.html`,
      preferring `plan.md` over its own phase files and `.html` over a sibling
      `.md` twin. If it exits non-zero (no artifacts found), ask the user for
      an explicit path instead of guessing.

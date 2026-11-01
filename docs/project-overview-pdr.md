@@ -2,14 +2,15 @@
 
 ## What It Is
 
-DropItX CLI (`dropitx`) is a Python command-line client for the DropItX file-sharing service. It provides a terminal-native interface for uploading files, text content, and stdin pipes to DropItX with optional password protection, expiration, burn-after-reading, and QR code generation.
+DropItX CLI (`dropitx`) is a Node.js command-line client for the DropItX file-sharing service, distributed on npm. It provides a terminal-native interface for uploading files, text content, and stdin pipes to DropItX with optional password protection, expiration, burn-after-reading, and QR code generation, plus an MCP stdio server that lets AI agents publish and manage pages.
 
-**Stack:** Click (CLI), httpx (HTTP), rich (terminal output), optional qrcode[pil]  
+**Stack:** TypeScript on Node.js >= 20, commander (CLI), built-in fetch (HTTP), qrcode, @modelcontextprotocol/sdk + zod (MCP)  
+**Install:** `npm install -g dropitx` or `npx dropitx`  
 **License:** MIT (Copyright 2026 DropItX)  
-**Repository:** https://github.com/phuongddx/dropitx-cli (public)  
+**Repository:** https://github.com/dropitx-io/dropitx-cli (public)  
 **Homepage:** https://dropitx.site  
-**Version:** 1.0.0 (2026-06-28)  
-**Tests:** 13 tests, all passing on CI (Python 3.9 + 3.12)
+**Version:** 2.0.0 (2026-11-01; replaces the never-published Python 1.x package)  
+**Tests:** vitest, network-free, CI on Node 20 and 22
 
 ## Target Users
 
@@ -32,9 +33,13 @@ DropItX CLI (`dropitx`) is a Python command-line client for the DropItX file-sha
 - **Custom slug:** `--slug` (single-file only; docs say 3-32 chars, not enforced client-side)
 
 ### Output & QR
-- **Rich terminal output:** Green Panel with Table of results (url, slug, delete_token, etc.)
-- **ASCII QR codes:** Built-in, no extra deps
-- **Image QR codes:** Requires `pip install 'dropitx[qr]'`
+- **Terminal output:** result block with the share URL on its own `URL: <url>` line, plus slug, delete token, expiry, burn and password flags
+- **Terminal QR codes:** built in
+- **Image QR codes:** PNG via `--qr-file` / `qr -o`, built in
+
+### Agent Integration
+- **MCP server:** `npx -y dropitx mcp` exposes publish_page, update_page, get_page, list_pages, delete_page, list_revisions, get_revision, restore_revision
+- **Claude Code skill:** `dropitx skill install` installs `drop-plan`
 
 ### Configuration
 - **API key:** Optional (uploads work without it)
@@ -56,43 +61,37 @@ DropItX CLI (`dropitx`) is a Python command-line client for the DropItX file-sha
 
 **FR1:** Upload single file via multipart POST to `{api_url}/api/cli/upload`  
 **FR2:** Upload text content via form POST to `{api_url}/api/cli/upload/text`  
-**FR3:** Upload stdin pipe by reading sys.stdin and delegating to text upload  
+**FR3:** Upload stdin pipe by reading stdin and delegating to text upload  
 **FR4:** Support password protection with secure prompt if flag value omitted  
 **FR5:** Support expiration, burn-after-reading, and custom slug options  
-**FR6:** Display upload results in formatted rich output with delete token  
+**FR6:** Display upload results with the URL on its own line and the delete token  
 **FR7:** Generate ASCII QR codes for uploaded URLs  
-**FR8:** Generate image QR codes when optional deps installed  
+**FR8:** Generate PNG QR codes  
 **FR9:** Store/retrieve API key and URL from config file with env override  
 **FR10:** Mask API key in `config show` display
 
 ### Non-Functional Requirements
 
-**NFR1:** Python 3.9+ runtime (see version mismatch note below)  
+**NFR1:** Node.js 20+ runtime  
 **NFR2:** 300s timeout for file uploads, 60s for text  
-**NFR3:** Graceful degradation when qrcode not installed  
-**NFR4:** Clear error messages with sys.exit(1) on failures  
-**NFR5:** MIT license, minimal deps (httpx, click, rich)
+**NFR3:** MCP tool failures surface as `isError: true` results with the API message  
+**NFR4:** Clear error messages on stderr with exit code 1 on failures  
+**NFR5:** MIT license, minimal deps (commander, qrcode, MCP SDK, zod)
 
 ### Success Criteria
 
-- **Adoption:** pip install succeeds; `dropitx --help` displays correctly
+- **Adoption:** `npm install -g dropitx` / `npx dropitx --help` work
 - **Reliability:** Uploads succeed with valid inputs; errors surface clearly
 - **UX:** Pipe flow works (`echo hi | dropitx`)
-- **QR:** ASCII QR always works; image QR degrades gracefully
+- **QR:** terminal and PNG QR codes work out of the box
 - **Config:** Precedence respected (env > file > default)
-- **Tests:** 13 network-free tests cover CLI surface, config resolution, field mapping, QR
-- **CI:** All tests passing on Python 3.9 and 3.12
+- **Tests:** network-free suites cover the CLI surface, config resolution, HTTP contracts, MCP tools, skill install
+- **CI:** typecheck, tests, build and pack pass on Node 20 and 22
 
 ## Known Issues & Gaps
 
-### Version Mismatch
-- **Issue:** `pyproject.toml` declares `>= 3.8` but code uses PEP 585 generics (`list[UploadResult]`, `tuple[str, ...]`) → practical minimum is **3.9+**
-- **Fix:** One-line change to `requires-python = ">=3.9"`
-
-### No PyPI Release Automation
-- CI exists (tests run on push/PR), but no PyPI publish workflow
-- Publishing is manual via `twine upload dist/*`
-- Opportunity: Add `.github/workflows/release.yml` triggered on tags
+### Release Secret
+- `publish.yml` publishes on `v*` tags but needs the `NPM_TOKEN` repository secret before the first release.
 
 ### Missing Features (Proposed)
 - No progress indication for large file uploads
@@ -106,5 +105,5 @@ Keys start with `shk_` (personal) or `sht_` (team). **The client never validates
 
 ---
 
-**Last Updated:** 2026-06-28  
-**Status:** v1.0.0 production release, MIT-licensed, tested (13 tests, CI-green), public on GitHub
+**Last Updated:** 2026-11-01  
+**Status:** v2.0.0 npm package, MIT-licensed, public on GitHub
