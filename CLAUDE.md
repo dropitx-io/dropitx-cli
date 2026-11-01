@@ -45,7 +45,7 @@ Auth is **optional** — if an API key exists it is sent as the `X-API-Key` head
 `UploadResult` wraps the JSON response. **Note the naming mismatch**: the server returns `deleteToken` (camelCase) which maps to `delete_token`; other fields (`slug`, `url`, `filename`, `size`, `expires_at`, `burn_after_reading`, `password_protected`) are already snake_case. Preserve this mapping when touching `uploader.py`.
 
 ### Config resolution (`config.py`)
-Precedence for both API key and URL: **environment variable** (`DROPITX_API_KEY` / `DROPITX_API_URL`) **overrides** `~/.dropitx/config.json`, which overrides `DEFAULT_API_URL` (`https://dropitx-api.onrender.com`). URLs are `.rstrip("/")`-ed. `config show` masks the key for display; `config set-url` mutates the file directly.
+Precedence for both API key and URL: **environment variable** (`DROPITX_API_KEY` / `DROPITX_API_URL`) **overrides** `~/.dropitx/config.json`, which overrides `DEFAULT_API_URL` (`https://api.dropitx.site`; use `config set-url` or `DROPITX_API_URL` for a local backend). Share links use `DEFAULT_FRONTEND_URL` (`https://dropitx.site`). URLs are `.rstrip("/")`-ed. `config show` masks the key for display; `config set-url` mutates the file directly.
 
 ### Optional QR (`qr.py`)
 `qrcode` import is wrapped in try/except and probed once via module-level `HAS_QRCODE`. `generate_qr_ascii` degrades to a plain text box when the extra is missing; `generate_qr_image` returns `False` instead of raising, and callers surface the `pip install 'dropitx[qr]'` hint.
@@ -62,16 +62,16 @@ Wraps FastAPI `/api/v1/documents` endpoints. Single responsibility: HTTP CRUD fo
 - **Auth:** Bearer token from `config.get_api_key()`, precedence env > file > None
 - **Timeout:** 60s (generous for Render free-tier cold starts)
 - **Content limit:** 5M chars (matches server-side `DocumentCreate.max_length`)
-- **Key pattern:** All functions raise `V1ClientError` on failure; caller decides whether to surface or return error dict (as MCP server does)
+- **Key pattern:** All functions raise `V1ClientError` on failure; the MCP server lets them propagate so FastMCP reports `isError: true`
 
 ### MCP Stdio Server (`mcp_server.py`)
 Wraps v1_client functions and exposes them as MCP tools for agents. Wired to the CLI via the `dropitx mcp` command in `cli.py` (lazy-imports `mcp_server` so the base install stays free of the `mcp` dependency; prints an install hint and exits 1 if the `mcp` extra isn't installed).
-- **Framework:** FastMCP (mcp.server.fastmcp)
+- **Framework:** FastMCP (`mcp.server.fastmcp`, `mcp>=1.0,<2` — mcp 2.x renamed it to `MCPServer` and removed this module)
 - **Entry:** `run_server()` starts stdio transport
 - **Tools:** 8 published via `@mcp.tool()` decorator:
   - publish_page, update_page, get_page, list_pages, delete_page
   - list_revisions, get_revision, restore_revision
-- **Error handling:** Catches `V1ClientError`, returns `{error: message}` dict (never raises) — keeps agent context clean
+- **Error handling:** Tools do not catch `V1ClientError`; FastMCP turns the raised exception into an `isError: true` result carrying the API's message. `dropitx mcp` distinguishes a missing extra from an installed-but-incompatible `mcp` version via `importlib.metadata`
 - **Content safety:** list_pages/list_revisions truncate content to 200 chars for context-window safety
 - **Response dicts:** Compact for publish/update (no content), full for get_page, preview for list
 

@@ -166,7 +166,7 @@ def get_api_key():
     return None
 ```
 
-Same pattern for `get_api_url()` with fallback to `DEFAULT_API_URL = "https://dropitx-api.onrender.com"`.
+Same pattern for `get_api_url()` with fallback to `DEFAULT_API_URL = "https://api.dropitx.site"`.
 
 ### URL Normalization
 ```python
@@ -203,7 +203,7 @@ table = Table(title="DropItX Configuration")
 table.add_column("Setting", style="cyan")
 table.add_column("Value")
 table.add_row("API URL", api_url)
-table.add_row("API Key", masked_key)  # "sk_abc...xyz"
+table.add_row("API Key", masked_key)  # "shk_abc...xyz"
 console.print(table)
 ```
 

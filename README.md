@@ -34,10 +34,10 @@ team" in Claude Code, or invoke it directly with `/drop-plan`. Re-run with
 ### Set up your API key
 
 ```bash
-dropitx config set-key sk_your_api_key_here
+dropitx config set-key shk_your_api_key_here
 ```
 
-Get your API key from [DropItX Dashboard](https://dropitx.com/dashboard).
+Get your API key from [DropItX Dashboard](https://dropitx.site/dashboard).
 
 ### Upload a file
 
@@ -172,7 +172,10 @@ Options:
 ## Environment Variables
 
 - `DROPITX_API_KEY` — API key (overrides config file)
-- `DROPITX_API_URL` — API base URL (overrides config file)
+- `DROPITX_API_URL` — API base URL (overrides config file; default `https://api.dropitx.site`)
+- `DROPITX_FRONTEND_URL` — base URL used to build share links (default `https://dropitx.site`)
+
+For a local backend, run `dropitx config set-url http://localhost:8000` or set `DROPITX_API_URL`.
 
 ## Configuration File
 
@@ -180,8 +183,8 @@ Configuration is stored at `~/.dropitx/config.json`:
 
 ```json
 {
-  "api_key": "sk_xxxxxxxxxxxxx",
-  "api_url": "https://dropitx-api.onrender.com"
+  "api_key": "shk_xxxxxxxxxxxxx",
+  "api_url": "https://api.dropitx.site"
 }
 ```
 
@@ -213,14 +216,9 @@ dropitx upload --burn secret.txt
 
 ## API Key
 
-Get your API key from the [DropItX Dashboard](https://dropitx.com/dashboard/api-keys).
+Get your API key from the [DropItX Dashboard](https://dropitx.site/developers).
 
-**Note:** The CLI accepts any API key format — the documented prefixes below are server-side conventions. The client does not validate prefixes.
-
-Common API key prefixes:
-- `sk_` — Standard API key (used in examples)
-- `shk_` — Personal API key
-- `sht_` — Team API key
+API keys start with `shk_` (personal) or `sht_` (team). The CLI does not validate the prefix; the server does.
 
 ## Development
 

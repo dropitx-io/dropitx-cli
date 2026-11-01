@@ -87,7 +87,7 @@ def cli(
     
         dropitx upload --password --expires 1h file.txt
     
-        dropitx config set-key sk_xxx
+        dropitx config set-key shk_xxx
     """
     # If no subcommand invoked, check for piped input
     if ctx.invoked_subcommand is None:
@@ -254,7 +254,7 @@ def config_cmd(action: str, value: Optional[str]) -> None:
     elif action == "set-url":
         if not value:
             console.print("[red]Error: URL required[/red]")
-            console.print("Usage: dropitx config set-url https://api.dropitx.com")
+            console.print("Usage: dropitx config set-url https://api.dropitx.site")
             sys.exit(1)
         
         from .config import load_config, save_config
@@ -316,9 +316,9 @@ def qr(url: str, output: Optional[str]) -> None:
     
     Examples:
     
-        dropitx qr https://dropitx.com/s/abc123
+        dropitx qr https://dropitx.site/s/abc123
     
-        dropitx qr -o qr.png https://dropitx.com/s/abc123
+        dropitx qr -o qr.png https://dropitx.site/s/abc123
     """
     if output:
         if generate_qr_image(url, output):
@@ -331,11 +331,22 @@ def qr(url: str, output: Optional[str]) -> None:
         console.print(generate_qr_ascii(url))
 
 
+def _installed_mcp_version() -> Optional[str]:
+    """Version of the installed `mcp` distribution, or None if it is not installed."""
+    from importlib.metadata import PackageNotFoundError, version
+
+    try:
+        return version("mcp")
+    except PackageNotFoundError:
+        return None
+
+
 @cli.command()
 def mcp() -> None:
     """Start the MCP stdio server for AI agents (requires Python 3.10+).
 
-    Exposes 5 tools: publish_page, update_page, get_page, list_pages, delete_page.
+    Exposes 8 tools: publish_page, update_page, get_page, list_pages, delete_page,
+    list_revisions, get_revision, restore_revision.
 
     Install the extra first: pip install 'dropitx[mcp]'
 
@@ -344,12 +355,21 @@ def mcp() -> None:
     """
     try:
         from .mcp_server import run_server
-    except ImportError:
-        click.echo(
-            "MCP server requires the 'dropitx[mcp]' extra (Python 3.10+).\n"
-            "Install it with: pip install 'dropitx[mcp]'",
-            err=True,
-        )
+    except ImportError as exc:
+        installed = _installed_mcp_version()
+        if installed is None:
+            click.echo(
+                "MCP server requires the 'dropitx[mcp]' extra (Python 3.10+).\n"
+                "Install it with: pip install 'dropitx[mcp]'",
+                err=True,
+            )
+        else:
+            click.echo(
+                f"The installed 'mcp' package (version {installed}) is incompatible "
+                f"with this version of dropitx: {exc}\n"
+                "Install a supported version with: pip install 'mcp>=1.0,<2'",
+                err=True,
+            )
         sys.exit(1)
 
     run_server()

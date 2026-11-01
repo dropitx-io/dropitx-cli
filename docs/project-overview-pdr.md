@@ -102,7 +102,7 @@ DropItX CLI (`dropitx`) is a Python command-line client for the DropItX file-sha
 
 ## API Key Prefix Note
 
-README documents key prefixes `shk_` (personal) and `sht_` (team), but examples use `sk_`. **Code never validates prefixes** — any string accepted. Prefixes are likely server-side conventions or outdated docs.
+Keys start with `shk_` (personal) or `sht_` (team). **The client never validates prefixes** — any string is accepted; the server validates.
 
 ---
 

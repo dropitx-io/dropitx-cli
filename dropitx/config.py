@@ -6,10 +6,10 @@ from pathlib import Path
 from typing import Optional
 
 # Default API base URL
-DEFAULT_API_URL = "http://localhost:8000"
+DEFAULT_API_URL = "https://api.dropitx.site"
 
 # Default frontend base URL (for share links: {frontend_url}/s/{slug})
-DEFAULT_FRONTEND_URL = "https://dropitx.com"
+DEFAULT_FRONTEND_URL = "https://dropitx.site"
 
 # Config file location
 CONFIG_DIR = Path.home() / ".dropitx"
