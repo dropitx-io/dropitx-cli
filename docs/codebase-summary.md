@@ -4,214 +4,78 @@
 
 ```
 dropitx-cli/
-├── dropitx/
-│   ├── __init__.py         (3 LOC - __version__ = "1.0.0")
-│   ├── cli.py              (339 LOC - Click CLI, all commands)
-│   ├── uploader.py         (172 LOC - httpx upload logic)
-│   ├── config.py           (74 LOC - config/env resolution)
-│   └── qr.py               (71 LOC - optional QR generation)
-├── tests/
-│   └── test_dropitx.py     (136 LOC - 13 tests, network-free)
-├── .github/workflows/
-│   └── ci.yml              (37 LOC - Python 3.9+3.12 matrix, pytest, CLI smoke)
-├── pyproject.toml          (49 LOC - deps, scripts)
-├── README.md               (214 LOC - usage docs)
-├── LICENSE                 (21 LOC - MIT, Copyright 2026 DropItX)
-└── .gitignore              (excludes __pycache__, *.egg-info, .venv, .pytest_cache)
+├── src/
+│   ├── cli.ts            bin entry (shebang): wires real stdin/stdout/TTY into run()
+│   ├── program.ts        commander program: every command and option, exit codes
+│   ├── config.ts         ~/.dropitx/config.json + DROPITX_* env resolution
+│   ├── http.ts           fetch with timeout, "Network error: ..." mapping, FastAPI detail extraction
+│   ├── uploader.ts       /api/cli/upload (multipart) and /api/cli/upload/text (urlencoded)
+│   ├── v1-client.ts      /api/v1/documents* CRUD + revisions, Bearer auth, error mapping
+│   ├── mcp-server.ts     8 MCP tools over stdio (@modelcontextprotocol/sdk)
+│   ├── output.ts         upload result block, column tables, key masking, ANSI colors
+│   ├── prompt.ts         hidden password prompt (/dev/tty), confirmation loop, y/N line prompt
+│   ├── qr.ts             terminal QR and PNG QR (qrcode)
+│   ├── skill-install.ts  copies the bundled skill to ~/.claude/skills/drop-plan
+│   └── version.ts        reads the version from package.json
+├── skills/drop-plan/     bundled Claude Code skill (SKILL.md, scripts/find_latest_plan.mjs)
+├── tests/                vitest suites (*.test.ts) + helpers.ts
+├── .github/workflows/    ci.yml (Node 20/22), publish.yml (npm on v* tags)
+├── package.json          name dropitx, bin dropitx -> dist/cli.js, engines node >= 20
+├── tsconfig.json         typecheck config (src + tests)
+└── tsconfig.build.json   build config (src -> dist)
 ```
 
-**Total Python LOC:** ~795 (including tests)  
-**Entry Point:** `dropitx = "dropitx.cli:cli"` (console script)  
-**Repository:** https://github.com/phuongddx/dropitx-cli (public, MIT)
+**Runtime dependencies:** `commander` (CLI), `@modelcontextprotocol/sdk` + `zod`
+(MCP server and tool schemas), `qrcode` (QR). HTTP uses Node's built-in
+`fetch`, `FormData` and `fs.openAsBlob`.
 
-## File Responsibilities
+## How the Pieces Connect
 
-### `dropitx/__init__.py` (3 LOC)
-- Exports `__version__ = "1.0.0"`
-- Duplicated in pyproject.toml (must keep in sync)
-
-### `dropitx/cli.py` (339 LOC) - Main CLI
-- **Click app:** `@click.group(invoke_without_command=True)` named `cli`
-- **Commands:** `upload`, `text`, `config`, `qr`
-- **Global options:** `--password`, `--expires`, `--burn`, `--slug`, `--qr`, `--qr-file`
-- **Pipe magic:** Bare `dropitx` with piped stdin → `upload_stdin()`
-- **Output layer:** `print_upload_result()` renders green Panel + Table
-- **Error handling:** Generic Exception catch, red error text, `sys.exit(1)`
-
-### `dropitx/uploader.py` (172 LOC) - Upload Logic
-- **`upload_file()`** - multipart POST for files, 300s timeout
-- **`upload_text()`** - form POST for text content, 60s timeout
-- **`upload_stdin()`** - reads sys.stdin, delegates to `upload_text()`
-- **`UploadResult`** - dataclass for API response fields
-- **API contract:** Optional `X-API-Key` header, form fields (password, expires, burn, slug)
-
-### `dropitx/config.py` (74 LOC) - Configuration
-- **`get_api_key()`** - precedence: env var → config file → None
-- **`get_api_url()`** - precedence: env var → config file → DEFAULT_API_URL
-- **`set_api_key()`** - saves to `~/.dropitx/config.json`
-- **`load_config()`/`save_config()`** - JSON file I/O
-- **Masking:** `config show` displays `api_key[:8] + "..." + api_key[-4:]`
-
-### `dropitx/qr.py` (71 LOC) - QR Generation
-- **`HAS_QRCODE`** - module-level bool from try/except import
-- **`generate_qr_ascii()`** - fallback to text box if qrcode missing
-- **`generate_qr_image()`** - returns False on missing dep, doesn't raise
-- **Params:** ASCII uses ERROR_CORRECT_L, image uses ERROR_CORRECT_M
-
-### `tests/test_dropitx.py` (136 LOC) - Test Suite
-- **13 network-free tests** covering:
-  - Package version and module imports
-  - CLI surface (`--help`, `--version`, subcommands via `CliRunner`)
-  - `UploadResult` field mapping (including `deleteToken`→`delete_token` camelCase + defaults)
-  - Config/env resolution precedence (env > file > default)
-  - QR text/ascii/image generation with `skipif(not HAS_QRCODE)`
-- **Isolation:** Uses `monkeypatch` to redirect config to tmp paths (never reads real `~/.dropitx`)
-- **Runner:** pytest with network-free execution
-
-### `.github/workflows/ci.yml` (37 LOC) - CI Pipeline
-- **Matrix:** Python 3.9 + 3.12
-- **Steps:** Install `.[dev,qr]` → `pytest -q` → CLI smoke (`--version`, `--help`)
-- **Triggers:** Push to `main`, pull requests
-- **Status:** Green on both Python versions
-
-## How They Connect
-
-### Command Flow
 ```
-cli() (Click group)
-├── No subcommand + stdin pipe → upload_stdin() → print_upload_result()
-├── upload command:
-│   ├── No files + stdin → upload_stdin()
-│   └── Files provided → loop upload_file() → print_upload_result()
-├── text command → upload_text() → print_upload_result()
-├── config command → config.py functions
-└── qr command → qr.py functions
+dropitx (dist/cli.js) -> program.run(argv, io)
+  ├── upload / text / bare-with-pipe -> uploader -> http -> POST /api/cli/upload[/text]
+  ├── config                         -> config (read/write ~/.dropitx/config.json)
+  ├── qr                             -> qr
+  ├── skill install                  -> skill-install (copies skills/drop-plan)
+  └── mcp                            -> mcp-server -> v1-client -> http -> /api/v1/documents*
 ```
 
-### Test Coverage
-```
-pytest runs tests/test_dropitx.py
-├── Version/import checks → dropitx.__version__, module attributes
-├── CLI surface → CliRunner invokes --help, --version, subcommands
-├── UploadResult mapping → Server deleteToken → client delete_token
-├── Config resolution → monkeypatch isolates env/file/default precedence
-└── QR generation → skipif guards when qrcode[pil] missing
-```
-
-### CI Pipeline
-```
-GitHub Actions (.github/workflows/ci.yml)
-├── Push to main or PR
-├── Matrix: Python 3.9, 3.12
-├── Steps:
-│   ├── checkout@v4
-│   ├── setup-python@v5
-│   ├── pip install -e '.[dev,qr]'
-│   ├── pytest -q (13 tests)
-│   └── CLI smoke (--version, --help)
-└── Result: Green check on all versions
-```
-
-### Config Resolution
-```
-get_api_key()
-├── os.getenv("DROPITX_API_KEY")
-├── load_config()["api_key"]
-└── None (uploads still work)
-```
-
-### Upload Pipeline
-```
-upload_file(path, password, expires, burn, slug)
-├── Read file bytes
-├── httpx.post(api_url + "/api/cli/upload", ...)
-│   ├── files={"file": ...}
-│   ├── data={password, expires, burn, slug}
-│   └── headers={"X-API-Key": key if exists}
-└── return UploadResult(dataclass)
-```
+`program.ts` never touches `process` directly: `cli.ts` passes a `CliIO`
+(stdin, TTY flag, stdout/stderr writers, color flag, hidden prompt). Tests pass
+an in-memory `CliIO` and assert on exit codes and output.
 
 ## Key Patterns
 
-### Password Idiom (Repeated in Every Upload Command)
-```python
-@click.option("--password", "-p", is_flag=False, flag_value="")
-def upload(password, ...):
-    if password == "":  # bare -p flag
-        password = click.prompt(..., hide_input=True, confirmation_prompt=True)
-```
+- **Optional password value.** `-p, --password [password]`: a bare flag
+  yields `true`, which triggers a hidden prompt asked twice until both entries
+  match. A following non-option argument is taken as the password.
+- **Bare invocation.** The root command has the upload options and an action:
+  piped stdin is uploaded as `stdin.txt`, an interactive terminal prints help.
+  `enablePositionalOptions()` keeps root options before the command name.
+- **Single-file slug.** `upload` drops `--slug` when more than one file is given.
+- **Field mapping.** The upload response uses camelCase `deleteToken`; other
+  fields are snake_case. `toUploadResult()` maps them to one camelCase object.
+  `toDocumentResult()` keeps the v1 snake_case fields and adds `url`
+  (`{frontend_url}/s/{slug}`).
+- **Config read at call time.** `configPath()` uses `os.homedir()` on every
+  call, so `HOME` overrides (tests, isolated runs) take effect.
+- **MCP errors.** Each tool body runs inside `run()`, which converts any thrown
+  error into `{ isError: true, content: [{ text: "Error executing tool <name>: <message>" }] }`.
 
-### Optional Dependency Pattern
-```python
-try:
-    import qrcode
-    HAS_QRCODE = True
-except ImportError:
-    HAS_QRCODE = False
+## Tests
 
-def generate_qr_image(url, output):
-    if not HAS_QRCODE:
-        return False  # caller surfaces pip install message
-```
+`npm test` runs vitest over `tests/*.test.ts`; all suites are network-free.
+`helpers.ts` provides an isolated temp `HOME` per test, a real local HTTP stub
+(`startStub`) that records requests, a multipart/urlencoded body parser, a
+closed-port URL for network-failure cases, and an in-memory `CliIO`.
 
-### API Response Mapping
-```python
-# Server returns: deleteToken (camelCase)
-# Client stores: result.delete_token (snake_case)
-# Other fields already snake_case: slug, url, filename, size, expires_at
-```
-
-### Single Shared Console
-```python
-from rich.console import Console
-console = Console()  # global, reused everywhere
-```
-
-## Data Flow
-
-### File Upload Path
-```
-User input → Click CLI → upload_file()
-├── Read file from disk
-├── Build multipart form
-├── httpx POST (300s timeout)
-└── UploadResult → print_upload_result()
-    └── Rich Panel + Table → stdout
-```
-
-### Text Upload Path
-```
-User input → Click CLI → upload_text()
-├── Accept content string + optional filename
-├── Build form (content, filename)
-├── httpx POST (60s timeout)
-└── UploadResult → print_upload_result()
-```
-
-### Stdin Upload Path
-```
-Pipe → bare dropitx → upload_stdin()
-├── sys.stdin.read()
-├── Delegate to upload_text(filename="stdin.txt")
-└── UploadResult → print_upload_result()
-```
-
-## LOC Distribution
-
-| File | LOC | Purpose |
-|------|-----|---------|
-| cli.py | 339 | CLI commands, options, output rendering |
-| uploader.py | 172 | HTTP upload logic, API client |
-| test_dropitx.py | 136 | Test suite (13 tests, network-free) |
-| config.py | 74 | Config file and env resolution |
-| qr.py | 71 | QR code generation (optional) |
-| ci.yml | 37 | CI pipeline (Python 3.9+3.12 matrix) |
-| __init__.py | 3 | Version export |
-
-**Note:** `cli.py` is the only file exceeding 200 LOC. If more commands are added, consider splitting into command modules (e.g., `upload_cmd.py`, `config_cmd.py`).
-
----
-
-**Last Updated:** 2026-06-28  
-**Total Python LOC:** ~795 (including tests)  
-**Repository:** https://github.com/phuongddx/dropitx-cli (public, MIT)
+| Suite | Covers |
+|-------|--------|
+| config | env > file > default precedence, trailing-slash stripping, Python-written config files, corrupt files |
+| uploader | multipart and urlencoded field names, `X-API-Key`, option omission, HTTP/network errors, stdin |
+| v1-client | Bearer auth, missing-key guard, 401/404/410/other mapping, content-length and empty-update guards, paths and query params |
+| mcp-server | 8 tool names, Python-equivalent input schemas, result shapes, list truncation, isError for every tool, no stdout writes |
+| cli | help/version, bare pipe upload, password prompt, multi-file table, missing paths, config actions, qr |
+| skill-install | fresh install, no-overwrite, `--force` confirm/abort |
+| find-latest-plan | plan.md vs phase files, html vs md twins, docs/plans, script exit codes |
+| prompt, qr | confirmation loop, line prompt, QR output |

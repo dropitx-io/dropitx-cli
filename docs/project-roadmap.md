@@ -1,66 +1,31 @@
 # DropItX CLI - Project Roadmap
 
-## Current State (v1.0.0 - 2026-06-28)
+## Current State (v2.0.0 - 2026-11-01)
 
 **Working Features:**
-- File, text, and stdin uploads to DropItX API
-- Password protection, expiration, burn-after-reading, custom slug
-- Rich terminal output with Panel/Table formatting
-- ASCII QR code generation
-- Optional image QR with `dropitx[qr]` extra
+- File, text, and stdin uploads to the DropItX API
+- Password protection (hidden prompt), expiration, burn-after-reading, custom slug
+- Terminal QR codes and PNG QR files (built in, no extras)
 - Config management (API key, URL) with env override
-- **Test suite** (13 tests, network-free, covers CLI surface, config resolution, UploadResult mapping, QR generation)
-- **CI pipeline** (GitHub Actions, Python 3.9 + 3.12 matrix, all tests passing)
-- **Public repository** (`https://github.com/phuongddx/dropitx-cli`, MIT-licensed)
+- MCP stdio server with 8 page tools for AI agents (`npx -y dropitx mcp`)
+- `drop-plan` Claude Code skill, installed with `dropitx skill install`
+- **Runtime:** Node.js >= 20, published to npm as `dropitx` (replaces the never-published Python package)
+- **Tests:** vitest, network-free (local HTTP stubs), run in CI on Node 20 and 22
+- **Release automation:** `publish.yml` publishes with provenance on `v*` tags once `NPM_TOKEN` is configured
 
 **Known Gaps:**
-- Python version mismatch (declares 3.8+, requires 3.9+)
-- No PyPI publish automation (CI tests only, no release workflow)
 - No progress indication for large file uploads
 - No client-side validation for slug length/expires format
 - No chunked/resumable upload support
 - No retry logic on network failures
 
-## Completed (2026-06-28)
+## Completed
 
-### Phase 1: Foundation & Reliability
-
-**1.2 Add Test Suite** ✅ COMPLETED
-- Created `tests/test_dropitx.py` (136 LOC, 13 tests)
-- Unit tests for:
-  - Package version and module imports
-  - CLI surface (help, version, subcommands via CliRunner)
-  - `UploadResult` field mapping including `deleteToken`→`delete_token` camelCase + defaults
-  - Config/env resolution precedence (env > file > default)
-  - QR text/ascii/image generation with `skipif(not HAS_QRCODE)`
-- Network-free, uses `monkeypatch` to isolate config (never touches real `~/.dropitx`)
-- **Status:** All 13 tests passing
-
-**1.3 Add CI Pipeline** ✅ COMPLETED
-- GitHub Actions workflow `.github/workflows/ci.yml`
-- Matrix: Python 3.9 + 3.12
-- Steps: `pip install -e '.[dev,qr]'` → `pytest -q` → CLI smoke (`--version`, `--help`)
-- Triggers: push to `main`, pull requests
-- **Status:** Green on both Python 3.9 and 3.12
+- **2026-06-28** — Test suite and CI for the Python package.
+- **2026-11-01** — Ported the CLI and MCP server to TypeScript and npm (v2.0.0);
+  Node 20/22 CI; npm publish workflow; Python package removed.
 
 ## Proposed Roadmap
-
-### Phase 1: Foundation & Reliability (Continued)
-
-**Priority: HIGH**
-
-**1.1 Fix Python Version Declaration**
-- Change `requires-python = ">=3.9"` in pyproject.toml
-- Update classifiers to remove Python 3.8
-- **Why:** Code uses PEP 585 generics (`list[UploadResult]`, `tuple[str, ...]`) which require 3.9+
-- **Effort:** 5 minutes (one-line change)
-
-**1.4 Add Release Automation**
-- GitHub Actions workflow for PyPI publishing
-- Trigger on tag push (e.g., `v1.1.0`)
-- Build dist, check with twine, upload to PyPI
-- **Effort:** 1 day
-- **Acceptance:** `git tag v1.1.0 && git push --tags` publishes to PyPI
 
 ### Phase 2: Enhanced UX (Proposed)
 
@@ -68,8 +33,7 @@
 
 **2.1 Upload Progress Indication**
 - Add progress bar for large file uploads (300s timeout)
-- Use `rich.progress` or similar
-- Show during httpx POST multipart upload
+- Show progress while the multipart upload streams
 - **Effort:** 1 day
 - **Why:** Users have no feedback during long uploads
 
@@ -122,22 +86,14 @@
 
 **Priority: LOW**
 
-**4.1 Modularity**
-- Split `cli.py` (339 LOC) into command modules:
-  - `dropitx/commands/upload.py`
-  - `dropitx/commands/config.py`
-  - `dropitx/commands/qr.py`
-- **Effort:** 1 day
-- **Why:** Easier to add commands, reduces file length
-
 **4.2 Shell Completions**
 - Generate shell completion scripts (bash, zsh, fish)
-- Use `click-completion` or manual
+- commander has no built-in generator; write scripts or add a small helper
 - **Effort:** 0.5 day
 - **Why:** Better DX, autocomplete flags/files
 
 **4.3 Man Pages**
-- Generate man page from Click docstrings
+- Generate a man page from the commander help text
 - Include in package, install to `man/man1/`
 - **Effort:** 0.5 day
 - **Why:** Standard CLI tool convention
@@ -156,9 +112,7 @@
 - **History/cache:** Local-only, no API changes needed
 
 ### Internal Dependencies
-- **Release automation (1.4)** should come after **CI (1.3)**
-- **Progress indication (2.1)** benefits from **retry logic (2.2)**
-- **Modularity (4.1)** should precede **new commands (3.x)**
+- **Progress indication (2.1)** benefits from **retry logic (2.3)**
 
 ## Non-Goals (Explicitly Out of Scope)
 
@@ -170,11 +124,9 @@
 
 ## Success Metrics
 
-**Phase 1 (Foundation):**
-- All tests pass on 3.9, 3.10, 3.11, 3.12
-- PR checks automated
-- Release process fully automated
-- Zero manual steps for publishing
+**Foundation (done in v2.0.0 except the secret):**
+- All checks pass on Node 20 and 22
+- Publishing is a tag push once `NPM_TOKEN` is set
 
 **Phase 2 (Enhanced UX):**
 - Users see progress during uploads
@@ -199,9 +151,9 @@
 
 **Dependency Bloat:**
 - Avoid adding heavy deps for marginal gains
-- Prefer stdlib or already-installed packages (httpx, rich, click)
+- Prefer the Node standard library or existing dependencies (commander, qrcode, MCP SDK)
 
 ---
 
-**Last Updated:** 2026-06-28  
-**Roadmap Status:** Phase 1.2 (tests) and 1.3 (CI) completed; remaining items proposed
+**Last Updated:** 2026-11-01  
+**Roadmap Status:** v2.0.0 npm port complete; Phases 2-4 proposed
