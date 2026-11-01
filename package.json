@@ -1,6 +1,6 @@
 {
   "name": "dropitx",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "DropItX CLI — developer-friendly file sharing from the command line, with an MCP server for AI agents",
   "keywords": [
     "file-sharing",
@@ -16,7 +16,7 @@
     "url": "git+https://github.com/dropitx-io/dropitx-cli.git"
   },
   "license": "MIT",
-  "author": "DropItX <support@dropitx.com>",
+  "author": "DropItX <95doanphuong@gmail.com>",
   "type": "module",
   "bin": {
     "dropitx": "dist/cli.js"
