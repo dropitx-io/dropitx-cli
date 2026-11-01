@@ -1,27 +1,10 @@
-# Python bytecode / caches
-__pycache__/
-*.py[cod]
-*$py.class
-
-# Build / packaging artifacts
-*.egg-info/
-.eggs/
-build/
+# Dependencies / build output
+node_modules/
 dist/
-*.egg
+*.tgz
 
-# Virtual environments
-.venv/
-venv/
-env/
-
-# Test / type / lint caches
-.pytest_cache/
-.coverage
-.coverage.*
-htmlcov/
-.mypy_cache/
-.ruff_cache/
+# Test caches
+coverage/
 
 # OS files
 .DS_Store
