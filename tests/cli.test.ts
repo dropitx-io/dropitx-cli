@@ -41,7 +41,8 @@ describe("help and version", () => {
   it("--version prints the package version", async () => {
     const io = await fakeIO();
     expect(await run(["--version"], io)).toBe(0);
-    expect(io.stdout().trim()).toBe("2.0.0");
+    const { version } = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as { version: string };
+    expect(io.stdout().trim()).toBe(version);
   });
 
   it("bare invocation on a terminal prints help without uploading", async () => {
