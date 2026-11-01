@@ -14,6 +14,16 @@ describe("qrTerminal", () => {
     expect(out).toMatch(/[█▀▄]/);
   });
 
+  it("emits no ANSI escapes when color is off, so piped output stays plain", async () => {
+    const out = await qrTerminal("https://dropitx.site/s/abc123", { color: false });
+    expect(out).not.toContain("\u001b");
+    expect(out).toMatch(/[█▀▄]/);
+  });
+
+  it("uses inverted ANSI colors on a color terminal so the code scans on dark themes", async () => {
+    expect(await qrTerminal("https://dropitx.site/s/abc123", { color: true })).toContain("\u001b[");
+  });
+
   it("renders different codes for different URLs", async () => {
     expect(await qrTerminal("https://dropitx.site/s/a")).not.toBe(await qrTerminal("https://dropitx.site/s/b"));
   });

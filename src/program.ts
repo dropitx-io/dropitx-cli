@@ -62,7 +62,7 @@ export function buildProgram(io: CliIO): Command {
   async function showQr(url: string, heading: string) {
     line();
     line(p.bold(heading));
-    io.out(await qrTerminal(url));
+    io.out(await qrTerminal(url, { color: io.color }));
   }
 
   async function printResult(result: UploadResult, f: Pick<UploadFlags, "qr" | "qrFile">) {
@@ -223,7 +223,7 @@ export function buildProgram(io: CliIO): Command {
         await saveQrImage(url, f.output);
         line(p.green(`QR code saved to: ${f.output}`));
       } else {
-        io.out(await qrTerminal(url));
+        io.out(await qrTerminal(url, { color: io.color }));
       }
     });
 
