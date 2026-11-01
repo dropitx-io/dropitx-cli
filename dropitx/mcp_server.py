@@ -2,6 +2,10 @@
 
 Run with: dropitx mcp  (requires the 'dropitx[mcp]' extra, Python ≥3.10)
 Stdio transport only — stdout is reserved for the MCP protocol.
+
+API failures are not caught here: a V1ClientError raised by a tool propagates
+to FastMCP, which reports it as an MCP result with isError=true carrying the
+API's message, so agents can tell a failure from a success.
 """
 
 from __future__ import annotations
@@ -11,7 +15,6 @@ from mcp.server.fastmcp import FastMCP
 from .v1_client import (
     MAX_CONTENT_LENGTH,
     DocumentResult,
-    V1ClientError,
     create_document as _create_document,
     delete_document as _delete_document,
     get_document as _get_document,
@@ -72,11 +75,6 @@ def _result_to_preview_dict(result: DocumentResult) -> dict:
     }
 
 
-def _error_dict(exc: V1ClientError) -> dict:
-    """Wrap a V1ClientError into a tool-safe error dict."""
-    return {"error": exc.message}
-
-
 @mcp.tool()
 def publish_page(
     content: str,
@@ -102,17 +100,14 @@ def publish_page(
     Returns:
         Dict with url, slug, title, filename, expires_at.
     """
-    try:
-        result = _create_document(
-            content,
-            filename=filename,
-            title=title,
-            is_private=is_private,
-            expires_in=expires_in_seconds,
-        )
-        return _result_to_publish_dict(result)
-    except V1ClientError as exc:
-        return _error_dict(exc)
+    result = _create_document(
+        content,
+        filename=filename,
+        title=title,
+        is_private=is_private,
+        expires_in=expires_in_seconds,
+    )
+    return _result_to_publish_dict(result)
 
 
 @mcp.tool()
@@ -136,11 +131,8 @@ def update_page(
     Returns:
         Dict with url, slug, title, filename, expires_at.
     """
-    try:
-        result = _update_document(slug, content=content, title=title, filename=filename)
-        return _result_to_publish_dict(result)
-    except V1ClientError as exc:
-        return _error_dict(exc)
+    result = _update_document(slug, content=content, title=title, filename=filename)
+    return _result_to_publish_dict(result)
 
 
 @mcp.tool()
@@ -153,11 +145,8 @@ def get_page(slug: str) -> dict:
     Returns:
         Dict with url, slug, title, filename, content (full), metadata.
     """
-    try:
-        result = _get_document(slug)
-        return _result_to_full_dict(result)
-    except V1ClientError as exc:
-        return _error_dict(exc)
+    result = _get_document(slug)
+    return _result_to_full_dict(result)
 
 
 @mcp.tool()
@@ -173,11 +162,8 @@ def list_pages(limit: int = 20) -> list[dict]:
     Returns:
         List of dicts with url, slug, title, content_preview, content_size.
     """
-    try:
-        results = _list_documents(page=1, limit=limit)
-        return [_result_to_preview_dict(r) for r in results]
-    except V1ClientError as exc:
-        return [_error_dict(exc)]
+    results = _list_documents(page=1, limit=limit)
+    return [_result_to_preview_dict(r) for r in results]
 
 
 @mcp.tool()
@@ -188,13 +174,10 @@ def delete_page(slug: str) -> dict:
         slug: The page slug to delete.
 
     Returns:
-        Dict: {"deleted": true, "slug": ...} or {"error": ...}.
+        Dict: {"deleted": true, "slug": ...}.
     """
-    try:
-        _delete_document(slug)
-        return {"deleted": True, "slug": slug}
-    except V1ClientError as exc:
-        return _error_dict(exc)
+    _delete_document(slug)
+    return {"deleted": True, "slug": slug}
 
 
 def run_server() -> None:
@@ -221,17 +204,14 @@ def list_revisions(slug: str, limit: int = 20) -> dict:
     Returns:
         Dict with 'revisions' (list of metadata) and 'total' count.
     """
-    try:
-        data = _list_revisions(slug, limit=limit)
-        # Truncate content in each revision for context-window safety
-        for rev in data.get("revisions", []):
-            content = rev.get("content", "")
-            rev["content_preview"] = content[:_PREVIEW_CHARS] + ("..." if len(content) > _PREVIEW_CHARS else "")
-            rev["content_size"] = len(content)
-            del rev["content"]
-        return data
-    except V1ClientError as exc:
-        return _error_dict(exc)
+    data = _list_revisions(slug, limit=limit)
+    # Truncate content in each revision for context-window safety
+    for rev in data.get("revisions", []):
+        content = rev.get("content", "")
+        rev["content_preview"] = content[:_PREVIEW_CHARS] + ("..." if len(content) > _PREVIEW_CHARS else "")
+        rev["content_size"] = len(content)
+        del rev["content"]
+    return data
 
 
 @mcp.tool()
@@ -245,10 +225,7 @@ def get_revision(slug: str, revision: int) -> dict:
     Returns:
         Dict with revision number, full content, filename, title, created_at.
     """
-    try:
-        return _get_revision(slug, revision)
-    except V1ClientError as exc:
-        return _error_dict(exc)
+    return _get_revision(slug, revision)
 
 
 @mcp.tool()
@@ -266,7 +243,4 @@ def restore_revision(slug: str, revision: int) -> dict:
     Returns:
         Dict with the new revision number and confirmation message.
     """
-    try:
-        return _restore_revision(slug, revision)
-    except V1ClientError as exc:
-        return _error_dict(exc)
+    return _restore_revision(slug, revision)

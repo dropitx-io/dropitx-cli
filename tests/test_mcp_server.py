@@ -4,8 +4,9 @@ Uses pytest.importorskip("mcp") so tests skip cleanly when the extra is
 not installed (Python <3.10 or base install). Mocks v1_client at the
 module level so no real HTTP is made.
 
-Covers: tool return shapes, content truncation in list_pages, error
-mapping, delete return shape, and that no stdout writes occur in tool paths.
+Covers: tool return shapes, content truncation in list_pages, API failures
+being raised (and reported as isError over the MCP protocol), delete return
+shape, and that no stdout writes occur in tool paths.
 """
 
 from __future__ import annotations
@@ -58,14 +59,13 @@ def test_publish_page_returns_url_and_slug():
     assert "content" not in resp  # publish response excludes content
 
 
-def test_publish_page_error_returns_error_dict():
+def test_publish_page_error_raises():
     with patch.object(
         mcp_server, "_create_document",
         side_effect=v1_client.V1ClientError(401, "Invalid API key"),
     ):
-        resp = mcp_server.publish_page(content="hi")
-    assert "error" in resp
-    assert "Invalid API key" in resp["error"]
+        with pytest.raises(v1_client.V1ClientError, match="Invalid API key"):
+            mcp_server.publish_page(content="hi")
 
 
 # ---------------------------------------------------------------------------
@@ -80,13 +80,13 @@ def test_update_page_returns_url():
     assert resp["url"] == "https://dropitx.test/s/abc123"
 
 
-def test_update_page_error_returns_error_dict():
+def test_update_page_error_raises():
     with patch.object(
         mcp_server, "_update_document",
         side_effect=v1_client.V1ClientError(404, "Not found"),
     ):
-        resp = mcp_server.update_page(slug="missing", content="x")
-    assert "error" in resp
+        with pytest.raises(v1_client.V1ClientError, match="Not found"):
+            mcp_server.update_page(slug="missing", content="x")
 
 
 # ---------------------------------------------------------------------------
@@ -102,13 +102,13 @@ def test_get_page_returns_full_content():
     assert resp["view_count"] == 42
 
 
-def test_get_page_error_returns_error_dict():
+def test_get_page_error_raises():
     with patch.object(
         mcp_server, "_get_document",
         side_effect=v1_client.V1ClientError(404, "Not found"),
     ):
-        resp = mcp_server.get_page(slug="missing")
-    assert "error" in resp
+        with pytest.raises(v1_client.V1ClientError, match="Not found"):
+            mcp_server.get_page(slug="missing")
 
 
 # ---------------------------------------------------------------------------
@@ -136,14 +136,13 @@ def test_list_pages_short_content_no_ellipsis():
     assert "..." not in resp[0]["content_preview"]
 
 
-def test_list_pages_error_returns_error_in_list():
+def test_list_pages_error_raises():
     with patch.object(
         mcp_server, "_list_documents",
         side_effect=v1_client.V1ClientError(401, "Bad key"),
     ):
-        resp = mcp_server.list_pages()
-    assert len(resp) == 1
-    assert "error" in resp[0]
+        with pytest.raises(v1_client.V1ClientError, match="Bad key"):
+            mcp_server.list_pages()
 
 
 # ---------------------------------------------------------------------------
@@ -157,13 +156,13 @@ def test_delete_page_returns_deleted_true():
     assert resp["slug"] == "abc123"
 
 
-def test_delete_page_error_returns_error_dict():
+def test_delete_page_error_raises():
     with patch.object(
         mcp_server, "_delete_document",
         side_effect=v1_client.V1ClientError(404, "Not found"),
     ):
-        resp = mcp_server.delete_page(slug="missing")
-    assert "error" in resp
+        with pytest.raises(v1_client.V1ClientError, match="Not found"):
+            mcp_server.delete_page(slug="missing")
 
 
 # ---------------------------------------------------------------------------
@@ -199,13 +198,13 @@ def test_list_revisions_truncates_content():
     assert rev["content_preview"].endswith("...")
 
 
-def test_list_revisions_error():
+def test_list_revisions_error_raises():
     with patch.object(
         mcp_server, "_list_revisions",
         side_effect=v1_client.V1ClientError(404, "Not found"),
     ):
-        resp = mcp_server.list_revisions(slug="missing")
-    assert "error" in resp
+        with pytest.raises(v1_client.V1ClientError, match="Not found"):
+            mcp_server.list_revisions(slug="missing")
 
 
 # ---------------------------------------------------------------------------
@@ -220,13 +219,13 @@ def test_get_revision_returns_full_content():
     assert resp["revision"] == 2
 
 
-def test_get_revision_error():
+def test_get_revision_error_raises():
     with patch.object(
         mcp_server, "_get_revision",
         side_effect=v1_client.V1ClientError(404, "Revision not found"),
     ):
-        resp = mcp_server.get_revision(slug="x", revision=99)
-    assert "error" in resp
+        with pytest.raises(v1_client.V1ClientError, match="Revision not found"):
+            mcp_server.get_revision(slug="x", revision=99)
 
 
 # ---------------------------------------------------------------------------
@@ -241,10 +240,57 @@ def test_restore_revision_returns_confirmation():
     assert resp["revision"] == 4
 
 
-def test_restore_revision_error():
+def test_restore_revision_error_raises():
     with patch.object(
         mcp_server, "_restore_revision",
         side_effect=v1_client.V1ClientError(404, "Revision not found"),
     ):
-        resp = mcp_server.restore_revision(slug="x", revision=99)
-    assert "error" in resp
+        with pytest.raises(v1_client.V1ClientError, match="Revision not found"):
+            mcp_server.restore_revision(slug="x", revision=99)
+
+
+# ---------------------------------------------------------------------------
+# Protocol level: a failing tool must surface as isError=true over MCP
+# ---------------------------------------------------------------------------
+
+_TOOL_CALLS = {
+    "publish_page": ("_create_document", {"content": "x"}),
+    "update_page": ("_update_document", {"slug": "a", "content": "x"}),
+    "get_page": ("_get_document", {"slug": "a"}),
+    "list_pages": ("_list_documents", {}),
+    "delete_page": ("_delete_document", {"slug": "a"}),
+    "list_revisions": ("_list_revisions", {"slug": "a"}),
+    "get_revision": ("_get_revision", {"slug": "a", "revision": 1}),
+    "restore_revision": ("_restore_revision", {"slug": "a", "revision": 1}),
+}
+
+
+def test_every_registered_tool_is_covered():
+    import asyncio
+
+    tools = asyncio.run(mcp_server.mcp.list_tools())
+    assert {t.name for t in tools} == set(_TOOL_CALLS)
+
+
+@pytest.mark.parametrize("tool_name", sorted(_TOOL_CALLS))
+def test_api_failure_is_reported_as_mcp_error(tool_name):
+    import asyncio
+
+    from mcp.shared.memory import create_connected_server_and_client_session
+
+    patch_target, args = _TOOL_CALLS[tool_name]
+
+    async def run():
+        async with create_connected_server_and_client_session(
+            mcp_server.mcp._mcp_server
+        ) as client:
+            return await client.call_tool(tool_name, args)
+
+    with patch.object(
+        mcp_server, patch_target,
+        side_effect=v1_client.V1ClientError(500, "API error (500): boom"),
+    ):
+        result = asyncio.run(run())
+
+    assert result.isError is True
+    assert "API error (500): boom" in result.content[0].text
