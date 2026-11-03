@@ -4,8 +4,7 @@
 
 `dropitx` is published to npm as a single ESM package with a `dropitx` bin.
 Users install it with `npm install -g dropitx` or run it with `npx dropitx`.
-Version 2.0.0 replaced the earlier Python package, which was never published
-to PyPI.
+Version 2.0.0 replaced the earlier Python package.
 
 - **CI:** `.github/workflows/ci.yml` — on push to `main` and on pull requests,
   Node 20 and 22 on `ubuntu-24.04`: `npm ci`, `npm run typecheck`, `npm test`,
