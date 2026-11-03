@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-DropItX CLI — a TypeScript command-line client for the DropItX file-sharing service, published to npm as `dropitx` (`npm install -g dropitx`, `npx dropitx`, MCP via `npx -y dropitx mcp`). Dual-mode: direct uploads via a **commander** CLI, and agent-driven page management via an MCP stdio server built on **@modelcontextprotocol/sdk** (1.x) with **zod** schemas. QR codes come from **qrcode**; HTTP is Node's built-in `fetch`. Node **20+** (`engines.node`), ESM only. Version 2.0.0 replaced the earlier Python package (never published to PyPI).
+DropItX CLI — a TypeScript command-line client for the DropItX file-sharing service, published to npm as `dropitx` (`npm install -g dropitx`, `npx dropitx`, MCP via `npx -y dropitx mcp`). Dual-mode: direct uploads via a **commander** CLI, and agent-driven page management via an MCP stdio server built on **@modelcontextprotocol/sdk** (1.x) with **zod** schemas. QR codes come from **qrcode**; HTTP is Node's built-in `fetch`. Node **20+** (`engines.node`), ESM only. Version 2.0.0 replaced the earlier Python package.
 
 ## Commands
 
